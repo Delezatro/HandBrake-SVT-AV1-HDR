@@ -2,7 +2,7 @@ name: Windows x64 Build
 
 on:
   push:
-    branches: [main, 'modernize/**']
+    branches: [main]
     paths-ignore: ['docs/**', '**.md']
   pull_request:
     paths-ignore: ['docs/**', '**.md']
@@ -50,11 +50,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y automake autoconf build-essential libtool libtool-bin make meson nasm patch tar yasm zlib1g-dev ninja-build gzip pax cmake libssl-dev
           rustup target add x86_64-pc-windows-gnu
-          cargo install cargo-c --version 0.10.27 --locked
       - name: Install verified official x64 UCRT toolchain
         run: |
           python3 scripts/download_toolchain.py toolchains
           echo "$PWD/toolchains/$(python3 -c 'import json; print(json.load(open("sources.lock.json"))["windows_x64_toolchain"]["bin"])')" >> "$GITHUB_PATH"
+          echo "$PWD/toolchains/cargo-c" >> "$GITHUB_PATH"
       - name: Build from clean sources
         working-directory: HandBrake
         run: |

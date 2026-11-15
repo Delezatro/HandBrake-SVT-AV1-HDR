@@ -9,6 +9,11 @@
     "url": "https://github.com/juliobbv-p/svt-av1-hdr/archive/f5df03be4c2087991d2cbd465874161a64dad6b4.tar.gz",
     "sha256": "12d65b030f8870357195204c661d44e8b5959ff6a77ff0efb53600d8bdf53a3c"
   },
+  "cargo_c": {
+    "version": "0.10.27",
+    "url": "https://github.com/lu-zero/cargo-c/releases/download/v0.10.27/cargo-c-x86_64-unknown-linux-musl.tar.gz",
+    "sha256": "ea5196db4795077e50e7f11e95b1c01a96df2a19b738fb2c91d9851269062416"
+  },
   "windows_x64_toolchain": {
     "url": "https://github.com/HandBrake/HandBrake-toolchains/releases/download/1.0/mingw-w64-toolchain-12.0.0-ucrt-linux-x86_64.tar.gz",
     "sha256": "e72f51e445a22ac08243a3a74e20aeadb8fc5706a1ae11c686c8d15ee8ddc63d",

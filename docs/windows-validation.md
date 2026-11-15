@@ -24,6 +24,7 @@ servicing and distribution packages can change).
 The Windows build uses the official HandBrake x64 GCC/MinGW UCRT toolchain
 12.0.0 instead of the previous LLVM/MSVCRT toolchain, with the release asset's
 SHA-256 enforced. GUI publishing uses upstream's .NET 10 profiles and build.xml.
+The cargo-c 0.10.27 Linux release binary is also pinned and SHA-256 verified.
 FFmpeg 9.0.2 and other native dependencies come from this HandBrake revision's
 contrib definitions and checksums. No old native build directory or compiler
 cache is restored. This workflow targets x64; ARM64 builds are outside this
@@ -75,6 +76,7 @@ Locally passed:
 - Two regression tests: rejecting mismatched sources or native hashes, and
   failing a broken patch series without partially modifying the source checkout.
 - `git diff --check`.
+- actionlint 1.7.12 workflow validation (shellcheck/pyflakes not installed locally).
 
 The Actions workflow additionally runs the native cross-build, GUI/installer
 build, packaged-DLL API check, and six short synthetic encodes: 4:2:0 8-bit

@@ -28,3 +28,7 @@ if __name__ == "__main__":
     archive = download(toolchain["url"], destination / "toolchain.tar.gz", toolchain["sha256"])
     with tarfile.open(archive) as source:
         source.extractall(destination, filter="data")
+    cargo = lock["cargo_c"]
+    archive = download(cargo["url"], destination / "cargo-c.tar.gz", cargo["sha256"])
+    with tarfile.open(archive) as source:
+        source.extractall(destination / "cargo-c", filter="data")
