@@ -25,6 +25,8 @@ def main():
         with tarfile.open(archive) as source:
             source.extractall(tmp, filter="data")
         svt = next(Path(tmp).iterdir())
+        tarbase = re.search(r"^SVT-AV1.EXTRACT.tarbase\s*=\s*(\S+)", module, re.M)
+        assert tarbase and tarbase.group(1) == svt.name, "Contrib extraction directory must match archive root"
         header = (svt / "Source/API/EbSvtAv1Enc.h").read_text()
         code = (args.handbrake / "libhb/encsvtav1.c").read_text()
         fields = set(re.findall(r"param->(\w+)", code))
