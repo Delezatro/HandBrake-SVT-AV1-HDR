@@ -1,4 +1,6 @@
-Snapshot builds are based on the latest development code which means they may or may not be stable and probably won't be documented. As such, your mileage may vary.
+Windows x64 snapshot with SVT-AV1-HDR 4.3 "Crankcase". Source revisions, patch hashes and native binary hashes are recorded in build-manifest.json.
+Extract the complete portable ZIP into a fresh directory; do not mix hb.dll or other DLLs from different builds.
+Build and synthetic runtime checks do not prove that the reported Blu-ray ISO crash is fixed. Interactive testing with the affected ISO remains required.
 These builds are better suited for more experienced users and developers although everyone is welcome to give them a shot and provide feedback.
 
 ### Bugs

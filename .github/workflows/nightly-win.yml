@@ -1,473 +1,164 @@
-name: Windows Build
+name: Windows x64 Build
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, 'modernize/**']
+    paths-ignore: ['docs/**', '**.md']
   pull_request:
+    paths-ignore: ['docs/**', '**.md']
   schedule:
     - cron: '30 7 * * 1,5'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  TOOLCHAIN_VERSION: "20260616"
-  TOOLCHAIN_SHA: "a1f7968b48ba8d949194d6dee6c76f3cd0f61cba91658599af2c2c834a55ab87"
-  TOOLCHAIN_FILE: "llvm-mingw-20260616-msvcrt-ubuntu-22.04-x86_64.tar.xz"
-
 jobs:
-  build_mingw_arm:
-    name: CLI / LibHB (ARM)
+  sources:
+    runs-on: ubuntu-24.04
+    outputs:
+      handbrake: ${{ steps.lock.outputs.handbrake }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: lock
+        run: echo "handbrake=$(python3 -c 'import json; print(json.load(open("sources.lock.json"))["handbrake"]["commit"])')" >> "$GITHUB_OUTPUT"
+
+  native:
+    name: Windows x64 CLI and hb.dll
+    needs: sources
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: HandBrake/HandBrake
+          ref: ${{ needs.sources.outputs.handbrake }}
+          path: HandBrake
+          fetch-depth: 0
+      - name: Prepare and test sources
+        run: |
+          python3 -m unittest discover -s tests -v
+          python3 scripts/prepare.py HandBrake --platform windows --require-pinned --manifest native/build-manifest.json
+          python3 scripts/check_sources.py HandBrake --download work/svt.tar.gz
+          git -C HandBrake diff --check
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y automake autoconf build-essential libtool libtool-bin make meson nasm patch tar yasm zlib1g-dev ninja-build gzip pax cmake libssl-dev
+          rustup target add x86_64-pc-windows-gnu
+          cargo install cargo-c --version 0.10.27 --locked
+      - name: Install verified official x64 UCRT toolchain
+        run: |
+          python3 scripts/download_toolchain.py toolchains
+          echo "$PWD/toolchains/$(python3 -c 'import json; print(json.load(open("sources.lock.json"))["windows_x64_toolchain"]["bin"])')" >> "$GITHUB_PATH"
+      - name: Build from clean sources
+        working-directory: HandBrake
+        run: |
+          ./configure --cross=x86_64-w64-mingw32 --enable-qsv --enable-vce --enable-nvenc --enable-nvdec --enable-libdovi --launch-jobs=0 --launch
+          make -C build pkg.create.zip
+      - name: Record native binary provenance
+        run: |
+          cp HandBrake/build/libhb/hb.dll HandBrake/build/HandBrakeCLI.exe native/
+          python3 scripts/manifest.py native
+          mkdir -p diagnostics
+          cp HandBrake/build/log/* diagnostics/ || true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: native-x64-${{ github.run_id }}
+          path: native/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-build-logs
+          path: |
+            HandBrake/build/log/
+            diagnostics/
 
-    - name: Rust Cache
-      uses: actions/cache@v6
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: ${{ runner.os }}-cargo-${{ github.run_id }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
-
-    - name: Toolchain Cache
-      id: toolchain-cache
-      uses: actions/cache@v6
-      with:
-        path: toolchains
-        key: ${{ runner.os }}-toolchain-${{ env.TOOLCHAIN_VERSION }}
-
-    - name: Compiler Cache
-      uses: actions/cache@v6
-      with:
-        path: ~/.ccache
-        key: ${{ runner.os }}-arm-ccache-${{ github.run_id }}
-        restore-keys: |
-          ${{ runner.os }}-arm-ccache-
-
-    - name: Get latest cargo-c version
-      id: cargoc_version
-      run: |
-        VERSION=$(curl -sL -A "HandBrake-Nightly" "https://crates.io/api/v1/crates/cargo-c" | python3 -c "import sys, json; print(json.load(sys.stdin)['crate']['max_version'])")
-        echo "CARGOC_VERSION=$VERSION" >> $GITHUB_ENV
-
-    - name: Cargo-C Toolchain Cache
-      id: windows-cargo-c-toolchain
-      uses: actions/cache@v6
-      with:
-        path: |
-          ~/.cargo/bin/cargo-capi
-          ~/.cargo/bin/cargo-cbuild
-          ~/.cargo/bin/cargo-cinstall
-        key: ${{ runner.os }}-${{ runner.arch }}-windows-cargo-c-toolchain-${{ env.CARGOC_VERSION }}
-
-    - name: Setup Environment
-      run: |
-        sudo apt-get update
-        sudo apt-get install automake autoconf build-essential intltool libtool libtool-bin make meson nasm patch tar yasm zlib1g-dev ninja-build gzip pax cmake ccache
-        rustup target add aarch64-pc-windows-gnullvm
-
-    - name: Setup Toolchain
-      if: steps.toolchain-cache.outputs.cache-hit != 'true'
-      run: |
-        wget https://github.com/mstorsjo/llvm-mingw/releases/download/${{ env.TOOLCHAIN_VERSION }}/${{ env.TOOLCHAIN_FILE }}
-        SHA=$(sha256sum ${{ env.TOOLCHAIN_FILE }})
-        EXPECTED="${{ env.TOOLCHAIN_SHA }}  ${{ env.TOOLCHAIN_FILE }}"
-        echo "Calculated SHA: $SHA"
-        echo "Expected SHA:  $EXPECTED"
-        if [ "$SHA" == "$EXPECTED" ]; then
-            echo "Toolchain Verified. Extracting ..."
-            mkdir toolchains
-            mv ${{ env.TOOLCHAIN_FILE }} toolchains
-            cd toolchains
-            tar xvf ${{ env.TOOLCHAIN_FILE }}
-        else
-            echo "Toolchain Verification FAILED. Exiting!"
-            exit 1
-        fi
-
-    - name: Setup Cargo-C Toolchain
-      if: steps.windows-cargo-c-toolchain.outputs.cache-hit != 'true'
-      run: |
-        cargo install cargo-c --version ${{ env.CARGOC_VERSION }} --locked
-
-    - name: Build CLI and LibHB
-      run: |
-        CWDIR=$(pwd)
-        export PATH="$CWDIR/toolchains/llvm-mingw-${{ env.TOOLCHAIN_VERSION }}-msvcrt-ubuntu-22.04-x86_64/bin:${PATH}"
-
-        mkdir -p ccache_bin
-        ln -s $(which ccache) ccache_bin/aarch64-w64-mingw32-clang
-        ln -s $(which ccache) ccache_bin/aarch64-w64-mingw32-clang++
-        export PATH="$CWDIR/ccache_bin:$PATH"
-        export CC="clang"
-        export CXX="clang++"
-        export CCACHE_DIR=$HOME/.ccache
-
-        git clone https://github.com/HandBrake/HandBrake.git
-        ./patch.sh
-        cd HandBrake
-        ./configure --cross=aarch64-w64-mingw32 --enable-mf --launch-jobs=0 --launch
-        cd build
-        make pkg.create.zip
-        
-    - name: Check Ccache Stats
-      run: |
-        echo "### Ccache Stats" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        ccache -s >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        
-    - name: Upload HandBrakeCLI
-      uses: actions/upload-artifact@v7
-      with:
-        name: HandBrakeCLI_ARM64
-        path: ./HandBrake/build/pkg/*.zip
-
-    - name: Upload LibHB
-      uses: actions/upload-artifact@v7
-      with:
-        name: LibHandBrake_ARM64
-        path: ./HandBrake/build/libhb/hb.dll
-  
-  build_gui_arm64:
-    name: Windows UI (ARM)
+  gui:
+    name: Windows x64 GUI and runtime tests
+    needs: [sources, native]
     runs-on: windows-2022
-    needs: build_mingw_arm
     steps:
-    - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: HandBrake/HandBrake
+          ref: ${{ needs.sources.outputs.handbrake }}
+          path: HandBrake
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Prepare identical GUI source tree
+        run: python scripts/prepare.py HandBrake --platform windows --require-pinned --manifest gui-manifest.json
+      - uses: actions/download-artifact@v8
+        with:
+          name: native-x64-${{ github.run_id }}
+          path: native
+      - name: Verify matching sources and native binaries
+        run: python scripts/manifest.py native --compare gui-manifest.json
+      - name: Prepare GUI dependencies
+        shell: pwsh
+        run: |
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files (x86)\NSIS'
+          choco install ffmpeg --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'ffmpeg installation failed' }
+          $publish = 'HandBrake/win/CS/HandBrakeWPF/bin/publish'
+          New-Item -ItemType Directory -Force $publish | Out-Null
+          Copy-Item native/hb.dll $publish
+      - name: Build GUI and installer
+        working-directory: HandBrake
+        run: dotnet msbuild win/CS/build.xml /t:x64
+      - name: Test CLI, encoder and packaged native library
+        run: python scripts/smoke_windows.py --native native --publish HandBrake/win/CS/HandBrakeWPF/bin/publish --output smoke-results
+      - name: Package matched GUI and CLI
+        shell: pwsh
+        run: |
+          $publish = Resolve-Path 'HandBrake/win/CS/HandBrakeWPF/bin/publish'
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $name = 'HandBrake-SVT-AV1-HDR-4.3-' + '${{ needs.sources.outputs.handbrake }}'.Substring(0, 12) + '-x64'
+          $installer = @(Get-ChildItem $publish -Filter '*Win_GUI.exe')
+          if ($installer.Count -ne 1) { throw 'Expected exactly one installer' }
+          Move-Item -LiteralPath $installer[0].FullName -Destination "dist/$name-setup.exe"
+          Copy-Item native/build-manifest.json $publish
+          Copy-Item native/HandBrakeCLI.exe $publish
+          Copy-Item "$publish/portable.ini.template" "$publish/portable.ini"
+          Compress-Archive -Path "$publish/*" -DestinationPath "dist/$name-portable.zip"
+          Copy-Item native/build-manifest.json dist/
+          Get-ChildItem dist -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content dist/sha256.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: HandBrake-Windows-x64
+          path: dist/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-runtime-results
+          path: smoke-results/
 
-    - name: Clone and Setup
-      run: |
-        git clone https://github.com/HandBrake/HandBrake.git
-        ./patch.sh
-        cd HandBrake
-        git rev-parse --short HEAD > gitHash.txt
-        git show -s --format=%cs > hb_date.txt
-        
-    - name: NuGet Restore
-      run: |
-         choco install nuget.commandline
-         cd HandBrake/win/CS/
-         nuget restore HandBrake.sln
-
-    - name: Download LibHandBrake ARM 64
-      uses: actions/download-artifact@v8
-      with:
-       name: LibHandBrake_ARM64
-       path: HandBrake/win/CS/HandBrakeWPF/bin/publish
-
-    - name: Build Windows GUI
-      run: |
-        cd HandBrake
-        $env:Path += ";C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin"
-        msbuild win\cs\build.xml /t:arm64 
-
-    - name: Prepare Package
-      run: |
-        echo "Setting up context"
-        set /p gitHash=<HandBrake/gitHash.txt
-        set /p HBDATE=<HandBrake/hb_date.txt
-        set HBDATE=%HBDATE:-=%    
-        set HBDATE=%HBDATE:~0,8%
-        set FILENAME=HandBrake-%HBDATE%-%gitHash%-arm64-Win_GUI.exe
-        set FILENAMEZIP=HandBrake-%HBDATE%-%gitHash%-arm64-Win_GUI.zip
-        echo %FILENAME%
-        echo %FILENAMEZIP%
-        echo "Renaming Windows Installer file"
-        cd HandBrake/win/CS/HandBrakeWPF/bin/publish/
-        dir
-        move HandBrake-*-Win_GUI.exe %FILENAME%
-        dir
-        cd ..
-        echo "Creating Portable Zip"
-        dir
-        rmdir /q /s Debug
-        move publish HandBrake
-        dir
-        7z a %FILENAMEZIP% * -x!Release\ -x!HandBrake\%FILENAME% -x!HandBrake\*.nsi -x!HandBrake\*.config -x!*HandBrake\*.xml -x!*HandBrake\*.pdb -x!*HandBrake\*.bmp  -x!HandBrake\*.zip -x!HandBrake\*.bz2 -x!HandBrake\*.msi -mx9
-        dir
-      shell: cmd
-
-    - name: Upload HandBrake exe Installer
-      uses: actions/upload-artifact@v7
-      with:
-        name: HandBrake-arm64-WinExe
-        path: HandBrake/win/CS/HandBrakeWPF/bin/HandBrake/*Win_GUI.exe
-    
-    - name: Upload HandBrake Portable
-      uses: actions/upload-artifact@v7
-      with:
-        name: HandBrake-arm64-WinPortable
-        path: HandBrake/win/CS/HandBrakeWPF/bin/*-Win_GUI.zip
-        
-  build_mingw_x64:
-    name: CLI / LibHB
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@v7
-
-    - name: Rust Cache
-      uses: actions/cache@v6
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: ${{ runner.os }}-cargo-${{ github.run_id }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
-
-    - name: Toolchain Cache
-      id: toolchain-cache
-      uses: actions/cache@v6
-      with:
-        path: toolchains
-        key: ${{ runner.os }}-toolchain-${{ env.TOOLCHAIN_VERSION }}
-
-    - name: Compiler Cache
-      uses: actions/cache@v6
-      with:
-        path: ~/.ccache
-        key: ${{ runner.os }}-x64-ccache-${{ github.run_id }}
-        restore-keys: |
-          ${{ runner.os }}-x64-ccache-
-
-    - name: Get latest cargo-c version
-      id: cargoc_version
-      run: |
-        VERSION=$(curl -sL -A "HandBrake-Nightly" "https://crates.io/api/v1/crates/cargo-c" | python3 -c "import sys, json; print(json.load(sys.stdin)['crate']['max_version'])")
-        echo "CARGOC_VERSION=$VERSION" >> $GITHUB_ENV
-
-    - name: Cargo-C Toolchain Cache
-      id: windows-cargo-c-toolchain
-      uses: actions/cache@v6
-      with:
-        path: |
-          ~/.cargo/bin/cargo-capi
-          ~/.cargo/bin/cargo-cbuild
-          ~/.cargo/bin/cargo-cinstall
-        key: ${{ runner.os }}-${{ runner.arch }}-windows-cargo-c-toolchain-${{ env.CARGOC_VERSION }}
-
-    - name: Setup Environment
-      run: |
-        sudo apt-get update
-        sudo apt-get install automake autoconf build-essential intltool libtool libtool-bin make meson nasm patch tar yasm zlib1g-dev ninja-build gzip pax cmake ccache
-        rustup target add x86_64-pc-windows-gnu
-
-    - name: Setup Toolchain
-      if: steps.toolchain-cache.outputs.cache-hit != 'true'
-      run: |
-        wget https://github.com/mstorsjo/llvm-mingw/releases/download/${{ env.TOOLCHAIN_VERSION }}/${{ env.TOOLCHAIN_FILE }}
-        SHA=$(sha256sum ${{ env.TOOLCHAIN_FILE }})
-        EXPECTED="${{ env.TOOLCHAIN_SHA }}  ${{ env.TOOLCHAIN_FILE }}"
-        echo "Calculated SHA: $SHA"
-        echo "Expected SHA:  $EXPECTED"
-        if [ "$SHA" == "$EXPECTED" ]; then
-            echo "Toolchain Verified. Extracting ..."
-            mkdir toolchains
-            mv ${{ env.TOOLCHAIN_FILE }} toolchains
-            cd toolchains
-            tar xvf ${{ env.TOOLCHAIN_FILE }}
-        else
-            echo "Toolchain Verification FAILED. Exiting!"
-            exit 1
-        fi
-
-    - name: Setup Cargo-C Toolchain
-      if: steps.windows-cargo-c-toolchain.outputs.cache-hit != 'true'
-      run: |
-        cargo install cargo-c --version ${{ env.CARGOC_VERSION }} --locked
-
-    - name: Build CLI and LibHB
-      run: |
-        CWDIR=$(pwd)
-        export PATH="$CWDIR/toolchains/llvm-mingw-${{ env.TOOLCHAIN_VERSION }}-msvcrt-ubuntu-22.04-x86_64/bin:${PATH}"
-
-        mkdir -p ccache_bin
-        ln -s $(which ccache) ccache_bin/x86_64-w64-mingw32-clang
-        ln -s $(which ccache) ccache_bin/x86_64-w64-mingw32-clang++
-        export PATH="$CWDIR/ccache_bin:$PATH"
-        export CC="clang"
-        export CXX="clang++"
-        export CCACHE_DIR=$HOME/.ccache
-
-        git clone https://github.com/HandBrake/HandBrake.git
-        ./patch.sh
-        cd HandBrake
-        ./configure --cross=x86_64-w64-mingw32 --enable-qsv --enable-vce --enable-nvenc --enable-nvdec --enable-libdovi --launch-jobs=0 --launch
-        cd build
-        make pkg.create.zip
-
-    - name: Check Ccache Stats
-      run: |
-        echo "### Ccache Stats" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        ccache -s >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        
-    - name: Upload HandBrakeCLI
-      uses: actions/upload-artifact@v7
-      with:
-        name: HandBrakeCLI
-        path: ./HandBrake/build/pkg/*.zip
-
-    - name: Upload LibHB
-      uses: actions/upload-artifact@v7
-      with:
-        name: LibHandBrake
-        path: ./HandBrake/build/libhb/hb.dll
-
-  build_gui_x64:
-    name: Windows UI
-    runs-on: windows-2022
-    needs: build_mingw_x64
-    steps:
-    - uses: actions/checkout@v7
-
-    - name: Clone and Setup
-      run: |
-        git clone https://github.com/HandBrake/HandBrake.git
-        ./patch.sh
-        cd HandBrake
-        git rev-parse --short HEAD > gitHash.txt
-        git show -s --format=%cs > hb_date.txt
-
-    - name: NuGet Restore
-      run: |
-         choco install nuget.commandline
-         cd HandBrake/win/CS/
-         nuget restore HandBrake.sln
-
-    - name: Download LibHandBrake
-      uses: actions/download-artifact@v8
-      with:
-       name: LibHandBrake
-       path: HandBrake/win/CS/HandBrakeWPF/bin/publish
-
-    - name: Build Windows GUI
-      run: |
-        cd HandBrake
-        $env:Path += ";C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin"
-        msbuild win\cs\build.xml /t:x64 
-        
-    - name: Prepare Package
-      run: |
-        echo "Setting up context"
-        set /p gitHash=<HandBrake/gitHash.txt
-        set /p HBDATE=<HandBrake/hb_date.txt
-        set HBDATE=%HBDATE:-=%
-        set HBDATE=%HBDATE:~0,8%
-        set FILENAME=HandBrake-%HBDATE%-%gitHash%-x86_64-Win_GUI.exe
-        set FILENAMEZIP=HandBrake-%HBDATE%-%gitHash%-x86_64-Win_GUI.zip
-        echo %FILENAME%
-        echo %FILENAMEZIP%
-        echo "Renaming Windows Installer file"
-        cd HandBrake/win/CS/HandBrakeWPF/bin/publish/
-        dir
-        move HandBrake-*-Win_GUI.exe %FILENAME%
-        dir
-        cd ..
-        dir
-        echo "Creating Portable Zip"
-        rmdir /q /s Debug
-        move publish HandBrake
-        7z a %FILENAMEZIP% * -x!Release\ -x!HandBrake\%FILENAME% -x!HandBrake\*.nsi -x!HandBrake\*.config -x!*HandBrake\*.xml -x!*HandBrake\*.pdb -x!*HandBrake\*.bmp  -x!HandBrake\*.zip -x!HandBrake\*.bz2 -x!HandBrake\*.msi -mx9
-      shell: cmd
-      
-    - name: Upload HandBrake exe Installer
-      uses: actions/upload-artifact@v7
-      with:
-        name: HandBrake-x86_64-WinExe
-        path: HandBrake/win/CS/HandBrakeWPF/bin/HandBrake/*-Win_GUI.exe
-       
-    - name: Upload HandBrake Portable
-      uses: actions/upload-artifact@v7
-      with:
-        name: HandBrake-x86_64-WinPortable
-        path: HandBrake/win/CS/HandBrakeWPF/bin/*-Win_GUI.zip
-        
-  deploy_nightly:
-    name: Deploy Nightly Build
-    runs-on: ubuntu-latest
-    needs: [build_gui_x64, build_gui_arm64]
+  release:
+    needs: gui
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v7
-       
-      # X64 Devices
-      - name: Download Artifacts - CLI x64
-        uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8
         with:
-          name: HandBrakeCLI
-          path: win/
-                   
-      - name: Download Artifacts - GUI x64 EXE
-        uses: actions/download-artifact@v8
-        with:
-          name: HandBrake-x86_64-WinExe
-          path: win/
-       
-      - name: Download Artifacts - GUI x64 Portable
-        uses: actions/download-artifact@v8
-        with:
-          name: HandBrake-x86_64-WinPortable
-          path: win/
-      
-      # ARM DEVICES
-      - name: Download Artifacts - CLI ARM64
-        uses: actions/download-artifact@v8
-        with:
-          name: HandBrakeCLI_ARM64
-          path: win/
-          
-      - name: Download Artifacts - GUI ARM64 EXE
-        uses: actions/download-artifact@v8
-        with:
-          name: HandBrake-arm64-WinExe
-          path: win/
-
-      - name: Download Artifacts - GUI ARM64 Portable
-        uses: actions/download-artifact@v8
-        with:
-          name: HandBrake-arm64-WinPortable
-          path: win/
-       
-      # Generate Hashes
-      - name: Generate SHA265 Hashes
-        run: |
-          cd win
-          sha256sum * > sha256.txt
-          cp sha256.txt ../.github/workflows/
-          cd ..
-          cd .github/workflows/
-          sed -e 's/  / | /' -i sha256.txt
-          sed -e 's/^/| /'  -i sha256.txt
-          sed -e 's/$/ |/' -i sha256.txt
-          cat sha256.txt >> win_rel_body.md
-
-      # Publishing the Release
-      - name: Remove the old Release
-        uses: dev-drprasad/delete-older-releases@v0.3.4
-        with:
-          keep_latest: 0
-          delete_tag_pattern: "win"
+          name: HandBrake-Windows-x64
+          path: dist
+      - name: Publish versioned snapshot without removing older releases
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: ncipollo/release-action@v1
-        with:
-          artifacts: "win/*.*"
-          name: "Snapshots for Windows"
-          bodyFile: .github/workflows/win_rel_body.md
-          prerelease: true
-          replacesArtifacts: false
-          allowUpdates: false
-          tag: win
-          token: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "win-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title 'Windows x64 / SVT-AV1-HDR 4.3' --notes-file .github/workflows/win_rel_body.md

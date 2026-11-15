@@ -1,4 +1,19 @@
 # HandBrake-SVT-AV1-HDR
+### Windows x64 modernization
+The Windows workflow builds a pinned current HandBrake development revision with
+SVT-AV1-HDR 4.3 "Crankcase". See [source pins](sources.lock.json) and the
+[compatibility and validation report](docs/windows-validation.md).
+Run **Windows x64 Build** in Actions, or open a pull request, to build and test
+the CLI, native library and .NET 10 GUI together. Download the complete
+`HandBrake-Windows-x64` artifact. Builds on main also publish versioned Windows
+prereleases. A successful build does **not** verify the reported Blu-ray ISO crash.
+
+For Windows source preparation (also works from PowerShell):
+```
+python scripts/prepare.py HandBrake --clone --platform windows --require-pinned --manifest build-manifest.json
+```
+Existing clone destinations are never deleted automatically.
+
 ### Purpose of the project
 This project contains the patches needed to replace SVT-AV1 with SVT-AV1-HDR inside HandBrake.\
 In addition, using GitHub Actions, nightly build of patched executables will be released.
