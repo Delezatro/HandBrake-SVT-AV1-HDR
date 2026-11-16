@@ -1,7 +1,7 @@
 {
   "handbrake": {
     "repository": "HandBrake/HandBrake",
-    "commit": "340f98da51ca335ba896c6064b8eaa4aa2d75312"
+    "commit": "005b91a697ceefec13877f7b020e293fb8d7a8c5"
   },
   "svt_av1_hdr": {
     "version": "4.3 Crankcase",

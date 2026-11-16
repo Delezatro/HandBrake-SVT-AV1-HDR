@@ -3,7 +3,7 @@
 ## Sources and compatibility
 
 The Windows workflow builds HandBrake's official development revision
-`340f98da51ca335ba896c6064b8eaa4aa2d75312` (master on 2026-11-15).
+`005b91a697ceefec13877f7b020e293fb8d7a8c5` (master on 2026-11-16).
 `sources.lock.json` is the update point. Scheduled builds deliberately rebuild
 that reviewed revision; they do not silently move to a new upstream commit.
 When updating it, rebase the patches and rerun the build and runtime checks.
