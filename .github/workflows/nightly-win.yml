@@ -109,7 +109,7 @@ jobs:
         shell: pwsh
         run: |
           Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files (x86)\NSIS'
-          choco install ffmpeg --yes --no-progress
+          choco install ffmpeg-full --version=9.0.2 --yes --no-progress
           if ($LASTEXITCODE -ne 0) { throw 'ffmpeg installation failed' }
           $publish = 'HandBrake/win/CS/HandBrakeWPF/bin/publish'
           New-Item -ItemType Directory -Force $publish | Out-Null

@@ -110,4 +110,29 @@ a fix. No AVX-disable workaround or speculative FFmpeg memory patch is applied.
 5. Compare with the working official Nightly under the same settings. On a
    crash retain the full dump, loaded-module list, package hashes and log.
 
-Until that test is completed, the ISO crash remains **unverified**.
+### Local comparison on the affected ISO (2026-11-15)
+
+The user supplied the affected Blu-ray ISO. Its size is 19,471,597,568 bytes;
+SHA-256 is `f794c83126e84593980c80078fdfc08a64f617c9b370df4f2026e6b7f05a7302`.
+Tests ran on Windows 11 25H2 (26200.9711), Ryzen 7 9800X3D, RTX 5090,
+NVIDIA driver 32.0.16.2112, with .NET Desktop 10.0.14/10.0.15 installed.
+Each baseline used its complete GUI ZIP in a separate portable directory.
+The installed HandBrake and the user's existing settings were not changed.
+
+| Complete package | Observed result |
+| --- | --- |
+| Official Nightly `20261111-e2dd8d8e1` | Software and NVDEC scans both completed; six valid titles, ten previews per title, responsive GUI |
+| Original HDR snapshot `20261030-72762b39e` | NVDEC scans completed with process isolation off and on; preview image rendered; reopening the ISO through the GUI in the same process also completed |
+
+NVDEC logs explicitly contain `adapter: converting video pixel format from nv12`.
+A separate test requested DirectX decoding but did not establish that the
+DirectX decoder was used; it is not counted as a DirectX pass.
+
+Baseline ZIP SHA-256 values:
+
+- Official: `921da6b2ee6855ac90e822bacf83b66d8aeb20cb1b393565ac32e45a61be4619`
+- Old HDR: `e0431df8e2497e353e4d70612904d56a4da04d020a3b839f6ed1b7a2a39da644`
+
+The original crash was **not reproduced in the old package** under these test
+conditions. Consequently, a successful new-build scan cannot establish that its
+cause has been fixed. New-build validation is pending the Actions artifact.
