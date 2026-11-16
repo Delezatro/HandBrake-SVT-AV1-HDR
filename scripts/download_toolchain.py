@@ -11,6 +11,7 @@ def download(url, target, expected):
     target = Path(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
+        print(f"Downloading {url}", flush=True)
         with urllib.request.urlopen(url, timeout=120) as response, target.open("wb") as output:
             while block := response.read(1024 * 1024):
                 output.write(block)
@@ -18,6 +19,7 @@ def download(url, target, expected):
         actual = hashlib.file_digest(stream, "sha256").hexdigest()
     if actual != expected:
         raise ValueError(f"SHA-256 mismatch for {target}: {actual}")
+    print(f"SHA-256 verified: {target} ({actual})", flush=True)
     return target
 
 
