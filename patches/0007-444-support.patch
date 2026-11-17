@@ -1,8 +1,8 @@
 diff --git a/libhb/common.c b/libhb/common.c
-index 2dcc5848c..1a35aeecb 100644
+index ce8f2f3..75aa3e4 100644
 --- a/libhb/common.c
 +++ b/libhb/common.c
-@@ -2269,6 +2269,11 @@ static const enum AVPixelFormat standard_10bit_only_pix_fmts[] =
+@@ -2350,6 +2350,11 @@ static const enum AVPixelFormat standard_10bit_only_pix_fmts[] =
      AV_PIX_FMT_YUV420P10, AV_PIX_FMT_NONE
  };
  
@@ -14,7 +14,7 @@ index 2dcc5848c..1a35aeecb 100644
  static const enum AVPixelFormat standard_10bit_pix_fmts[] =
  {
      AV_PIX_FMT_YUV420P10, AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE
-@@ -2394,8 +2399,29 @@ const int* hb_video_encoder_get_pix_fmts(int encoder, const char *profile)
+@@ -2475,8 +2480,29 @@ const int* hb_video_encoder_get_pix_fmts(int encoder, const char *profile)
              return hb_vt_get_pix_fmts(encoder);
  #endif
  
@@ -46,10 +46,10 @@ index 2dcc5848c..1a35aeecb 100644
          default:
              return standard_pix_fmts;
 diff --git a/libhb/encsvtav1.c b/libhb/encsvtav1.c
-index 1adcbd050..839e4bfd9 100644
+index 2d4919b..4f3b2da 100644
 --- a/libhb/encsvtav1.c
 +++ b/libhb/encsvtav1.c
-@@ -302,7 +302,20 @@ int encsvtInit(hb_work_object_t *w, hb_job_t *job)
+@@ -306,7 +306,20 @@ int encsvtInit(hb_work_object_t *w, hb_job_t *job)
      param->source_width  = job->width;
      param->source_height = job->height;
      param->encoder_bit_depth = hb_get_bit_depth(job->output_pix_fmt);
@@ -72,7 +72,7 @@ index 1adcbd050..839e4bfd9 100644
      if (job->pass_id == HB_PASS_ENCODE_ANALYSIS ||
          job->pass_id == HB_PASS_ENCODE_FINAL)
 diff --git a/libhb/handbrake/av1_common.h b/libhb/handbrake/av1_common.h
-index 73d86a6fa..c88386028 100644
+index 6622585..0d1f71a 100644
 --- a/libhb/handbrake/av1_common.h
 +++ b/libhb/handbrake/av1_common.h
 @@ -36,7 +36,8 @@ static const char * const hb_av1_svt_tune_names[] =

@@ -1,0 +1,22 @@
+{
+  "handbrake": {
+    "repository": "HandBrake/HandBrake",
+    "commit": "005b91a697ceefec13877f7b020e293fb8d7a8c5"
+  },
+  "svt_av1_hdr": {
+    "version": "4.3.0 Crankcase",
+    "commit": "6d661b6b510eb30b568d5ffcbb121176e553c454",
+    "url": "https://github.com/juliobbv-p/svt-av1-hdr/archive/6d661b6b510eb30b568d5ffcbb121176e553c454.tar.gz",
+    "sha256": "f1019ce1ce3687a82ec57270325deb521f9c8e586b19b8197c7e046451ecccbe"
+  },
+  "cargo_c": {
+    "version": "0.10.26",
+    "url": "https://github.com/lu-zero/cargo-c/releases/download/v0.10.26/cargo-c-x86_64-unknown-linux-musl.tar.gz",
+    "sha256": "685fab5a2e1539c5075cea21c42469ee5a489d877dbdbf7adccf4bb631d77545"
+  },
+  "windows_x64_toolchain": {
+    "url": "https://github.com/HandBrake/HandBrake-toolchains/releases/download/1.0/mingw-w64-toolchain-12.0.0-ucrt-linux-x86_64.tar.gz",
+    "sha256": "e72f51e445a22ac08243a3a74e20aeadb8fc5706a1ae11c686c8d15ee8ddc63d",
+    "bin": "mingw-w64-toolchain-12.0.0-ucrt-linux-x86_64/mingw-w64-x86_64/bin"
+  }
+}

@@ -1,2 +1,10 @@
 # HandBreak repo
 HandBrake
+__pycache__/
+*.pyc
+native/
+toolchains/
+smoke-results/
+dist/
+work/
+gui-manifest.json

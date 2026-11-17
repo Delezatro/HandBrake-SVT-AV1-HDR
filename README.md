@@ -1,4 +1,19 @@
 # HandBrake-SVT-AV1-HDR
+### Windows x64 modernization
+The Windows workflow builds a pinned current HandBrake development revision with
+SVT-AV1-HDR 4.3 "Crankcase". See [source pins](sources.lock.json) and the
+[compatibility and validation report](docs/windows-validation.md).
+Run **Windows x64 Build** in Actions, or open a pull request, to build and test
+the CLI, native library and .NET 10 GUI together. Download the complete
+`HandBrake-Windows-x64` artifact. Builds on main also publish versioned Windows
+prereleases. A successful build does **not** verify the reported Blu-ray ISO crash.
+
+For Windows source preparation (also works from PowerShell):
+```
+python scripts/prepare.py HandBrake --clone --platform windows --require-pinned --manifest build-manifest.json
+```
+Existing clone destinations are never deleted automatically.
+
 ### Purpose of the project
 This project contains the patches needed to replace SVT-AV1 with SVT-AV1-HDR inside HandBrake.\
 In addition, using GitHub Actions, nightly build of patched executables will be released.
@@ -8,11 +23,11 @@ In addition, using GitHub Actions, nightly build of patched executables will be 
 ### Downloads and Build Status
 | Operating System  | Download        | Build Status *1 |
 | ----------------- | --------------- | ------------- |
-| Windows           | [Download](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/releases/tag/win) | [![Windows Build](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-win.yml/badge.svg)](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-win.yml)  |
-| macOS             | [Download](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/releases/tag/mac) | [![macOS build](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-mac.yml/badge.svg)](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-mac.yml)  |
-| Linux (Flatpak)   | [Download](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/releases/tag/flatpak) | [![Flatpak Build](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-flatpak.yml/badge.svg)](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-flatpak.yml) |
-| Ubuntu            | [Download](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/releases/tag/ubuntu) | [![Flatpak Build](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-ubuntu.yml/badge.svg)](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-ubuntu.yml) |
-| Arch Linux        | [Download](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/releases/tag/arch) | [![Flatpak Build](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-arch.yml/badge.svg)](https://github.com/Uranite/HandBrake-SVT-AV1-PSY/actions/workflows/nightly-arch.yml) |
+| Windows           | [Download](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/releases) | [![Windows Build](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-win.yml/badge.svg)](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-win.yml)  |
+| macOS             | [Download](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/releases/tag/mac) | [![macOS build](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-mac.yml/badge.svg)](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-mac.yml)  |
+| Linux (Flatpak)   | [Download](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/releases/tag/flatpak) | [![Flatpak Build](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-flatpak.yml/badge.svg)](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-flatpak.yml) |
+| Ubuntu            | [Download](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/releases/tag/ubuntu) | [![Flatpak Build](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-ubuntu.yml/badge.svg)](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-ubuntu.yml) |
+| Arch Linux        | [Download](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/releases/tag/arch) | [![Flatpak Build](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-arch.yml/badge.svg)](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/workflows/nightly-arch.yml) |
 
 *1 Please note that if a build is marked as failed, previous builds may still be available for download!
 ### Testing
