@@ -4,10 +4,10 @@
     "commit": "005b91a697ceefec13877f7b020e293fb8d7a8c5"
   },
   "svt_av1_hdr": {
-    "version": "4.3 Crankcase",
-    "commit": "f5df03be4c2087991d2cbd465874161a64dad6b4",
-    "url": "https://github.com/juliobbv-p/svt-av1-hdr/archive/f5df03be4c2087991d2cbd465874161a64dad6b4.tar.gz",
-    "sha256": "12d65b030f8870357195204c661d44e8b5959ff6a77ff0efb53600d8bdf53a3c"
+    "version": "4.3.0 Crankcase",
+    "commit": "6d661b6b510eb30b568d5ffcbb121176e553c454",
+    "url": "https://github.com/juliobbv-p/svt-av1-hdr/archive/6d661b6b510eb30b568d5ffcbb121176e553c454.tar.gz",
+    "sha256": "f1019ce1ce3687a82ec57270325deb521f9c8e586b19b8197c7e046451ecccbe"
   },
   "cargo_c": {
     "version": "0.10.26",

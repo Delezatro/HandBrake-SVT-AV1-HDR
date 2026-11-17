@@ -8,10 +8,15 @@ The Windows workflow builds HandBrake's official development revision
 that reviewed revision; they do not silently move to a new upstream commit.
 When updating it, rebase the patches and rerun the build and runtime checks.
 
-SVT-AV1-HDR is pinned to `f5df03be4c2087991d2cbd465874161a64dad6b4`,
+SVT-AV1-HDR is pinned to `6d661b6b510eb30b568d5ffcbb121176e553c454`,
 4.3 "Crankcase", with archive SHA-256
-`12d65b030f8870357195204c661d44e8b5959ff6a77ff0efb53600d8bdf53a3c`.
-The archive was downloaded and its digest calculated locally.
+`f1019ce1ce3687a82ec57270325deb521f9c8e586b19b8197c7e046451ecccbe`.
+The archive was downloaded and its digest calculated locally. On 2026-11-17,
+upstream tag `v4.3.0` resolved to this commit. It supersedes the initially
+requested `f5df03be4c2087991d2cbd465874161a64dad6b4` following the release
+announcement. The release adds encoder fixes and a QM-PSNR configuration field;
+the two-argument initialization API remains compatible. All components are
+rebuilt together from the release headers and sources.
 The upstream README still says Vendata; the pinned commit message identifies
 Crankcase and CMake declares 4.3.0.
 
@@ -81,12 +86,18 @@ Locally passed:
 The Actions workflow additionally runs the native cross-build, GUI/installer
 build, packaged-DLL API check, and six short synthetic encodes: 4:2:0 8-bit
 with grain tune, 4:2:0 10-bit, 4:4:4 8-bit, 4:4:4 10-bit with PQ/BT.2020 and
-static HDR metadata, and research presets -2 and -3. ffprobe checks AV1 profile,
-pixel format, frame count and HDR metadata; ffmpeg decodes every output.
+static HDR metadata, and research presets -2 and -3. The HDR input is a generated
+HEVC fixture carrying PQ/BT.2020, mastering-display and content-light metadata.
+ffprobe checks AV1 profile, pixel format, frame count and metadata values,
+allowing the AV1 fixed-point quantization step; ffmpeg decodes every output.
+The test dependency is ffmpeg-full 9.0.2 and AV1 probing explicitly uses dav1d.
+The essentials build's libaom wrapper did not expose frame HDR side data, even
+though the encoded bitstream contained it; that test-environment failure was
+reproduced and corrected without changing encoder code or dropping assertions.
 Logs and results are uploaded, including on failures. A green build must be
 checked for the runtime job too; see the PR for observed CI results.
 
-Not established by these tests: interactive GUI source opening, hardware
+Not established by these CI fixtures alone: interactive GUI source opening, hardware
 decoding/encoding on real GPUs, HDR10+/Dolby Vision end-to-end passthrough,
 visual quality, long encodes, non-Windows builds, or the original ISO regression.
 
@@ -135,4 +146,53 @@ Baseline ZIP SHA-256 values:
 
 The original crash was **not reproduced in the old package** under these test
 conditions. Consequently, a successful new-build scan cannot establish that its
-cause has been fixed. New-build validation is pending the Actions artifact.
+cause has been fixed.
+
+### Diagnostic build validation (2026-11-16)
+
+Actions run `43755767483` successfully compiled CLI/hb.dll, the GUI and installer
+on HandBrake `340f98da51ca335ba896c6064b8eaa4aa2d75312`. Its runtime job stopped
+at the decoder-side HDR inspection issue described above. All six corrected
+runtime cases subsequently passed locally against that native artifact.
+
+A local GUI was published from the exact same patched source tree with the
+upstream x64 profile targeting .NET 10 (local SDK 11.0.100), then paired with
+that native artifact only after comparing source manifests and binary hashes.
+No components from the official or old HDR baseline were used in this package.
+
+Observed on the affected ISO:
+
+- CLI software and NVDEC scans: six valid titles; both passed.
+- CLI three-second grain encodes: AV1 8-bit/software and 10-bit/NVDEC, 72 frames
+  each; format checks and full output decoding passed.
+- GUI software and NVDEC scans passed; the source preview and separate preview
+  window rendered correctly.
+- A GUI-created frame-range job, resumed through the original GUI's
+  `--recover-queue-ids` / `--auto-start-queue` options, completed through the
+  regular worker: SVT 4.3 10-bit, preset 4, Film Grain, 73 frames, AAC audio.
+  The resulting 3.0447-second MP4 passed ffprobe checks and error-strict decoding.
+
+Test limitations and inconclusive observations are retained:
+
+- The Windows automation helper could not address the original HandBrake.exe
+  window because of an app-identity mismatch. A byte-identical renamed executable
+  was used for preview/UI setup. It cannot be used for worker validation because
+  upstream's worker watchdog requires a process named HandBrake. The encode
+  was therefore repeated successfully using the original executable name.
+- One original-name startup with a previous failed test queue present ended
+  during NV12 conversion. No exit code, corresponding event or dump was captured;
+  it is **not established** to be the reported access violation.
+- A clean original-name NVDEC scan passed, followed by three successful monitored
+  repeat scans. A fourth remained alive but had not progressed beyond GPU
+  capability probing after 30 seconds and was stopped; no fifth scan was run.
+- A further original-name NVDEC scan under ProcDump completed with six titles,
+  a responsive GUI and no unhandled exception or crash dump.
+
+These findings do not prove the original memory-access defect fixed. Full-film
+encodes, HDR10+/Dolby Vision passthrough, GPU encoding, DirectX decoding and
+installation of the generated installer remain unverified.
+
+The final source pin includes the subsequent official Mac highlight and Windows
+combobox XAML fixes; native codec source files are unchanged. Actions run `43963025566` passed all Windows jobs, including the six runtime
+cases, with the original SVT pin. Validation of the subsequent `v4.3.0` release
+pin is pending; these results must not be presented as tests of that new pin.
