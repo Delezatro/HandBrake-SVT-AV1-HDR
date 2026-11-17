@@ -14,8 +14,10 @@ SVT-AV1-HDR is pinned to `6d661b6b510eb30b568d5ffcbb121176e553c454`,
 The archive was downloaded and its digest calculated locally. On 2026-11-17,
 upstream tag `v4.3.0` resolved to this commit. It supersedes the initially
 requested `f5df03be4c2087991d2cbd465874161a64dad6b4` following the release
-announcement. The release adds encoder fixes and a QM-PSNR configuration field;
-the two-argument initialization API remains compatible. All components are
+announcement. A direct archive comparison changes only three codec files: fixes for 10-bit
+final coefficients, reconstruction used by sub-depth decisions, Clang/MSVC
+AVX-512 target attributes, and different deblocking level selection. Public headers are byte-identical, including the
+two-argument initialization API. All components are
 rebuilt together from the release headers and sources.
 The upstream README still says Vendata; the pinned commit message identifies
 Crankcase and CMake declares 4.3.0.
@@ -193,6 +195,71 @@ encodes, HDR10+/Dolby Vision passthrough, GPU encoding, DirectX decoding and
 installation of the generated installer remain unverified.
 
 The final source pin includes the subsequent official Mac highlight and Windows
-combobox XAML fixes; native codec source files are unchanged. Actions run `43963025566` passed all Windows jobs, including the six runtime
-cases, with the original SVT pin. Validation of the subsequent `v4.3.0` release
-pin is pending; these results must not be presented as tests of that new pin.
+combobox XAML fixes; HandBrake native codec source files are unchanged. Actions
+run `43963025566` passed all Windows jobs with the original SVT pin. The
+subsequent published-release validation is recorded separately below.
+
+
+### Published v4.3.0 package validation (2026-11-17)
+
+[Windows Actions run 44133655817](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/runs/44133655817)
+on code commit `0bf6324c2da7fa3e3887cff16be80f391d8ac30d` passed source checks,
+native compilation, GUI/installer publishing, manifest comparison, packaged-DLL
+API checks and all six synthetic encode/probe/decode cases described above.
+The release job was intentionally skipped for the PR. No merge or publication
+of a main-branch release was performed.
+
+This run uses the published SVT tag resolved to `6d661b6b510eb30b568d5ffcbb121176e553c454`.
+Its complete Windows artifact and runtime-results ZIP were downloaded and
+checked against GitHub's artifact digests. All package checksums and the source
+manifest matched the independently prepared local source tree. The complete
+portable ZIP was extracted into fresh directories for local testing; no native
+or managed components from another build were copied in.
+
+| Artifact/component | SHA-256 |
+| --- | --- |
+| Portable ZIP | `6a174757163429f67c135cddf9acb4813909724df459f8a3272037bf477a1106` |
+| Installer | `5d434803dbdb9c3fc0fedf36296d6bcb279c6076b4b31a94c530e4b8cd78141a` |
+| hb.dll | `f21894229ded74bb55484d9aea2afc8e23265652c30c14f12f8081ab5990e00f` |
+| HandBrakeCLI.exe | `21e17626095fe5bf6e17111bdec221760a42d303859dc89a39a11cc56f135a75` |
+
+The affected ISO's SHA-256 was recalculated on November 17 and matched the
+value above. Observed with the final portable package:
+
+- CLI software and NVDEC scans completed with all six titles.
+- Three-second CLI grain encodes produced 72 frames each: 8-bit with software
+  decoding and 10-bit with NVDEC. AV1/pixel-format/frame-count checks and
+  error-strict full decoding passed.
+- The original-name GUI completed one software scan and five consecutive NVDEC
+  scans in the final monitored sequence. Each found six titles; every NVDEC log
+  confirmed NV12 conversion. Each GUI process remained alive through the
+  post-completion observation and was then stopped by the test harness.
+- A GUI-created frame-range job was resumed by the original-name GUI and
+  completed through the regular worker: SVT 4.3.0, 10-bit, preset 4, Film Grain,
+  73 frames and AAC audio. Format/frame-count checks and error-strict output
+  decoding passed (local ffmpeg/ffprobe 9.0.1 full build).
+- The source preview and separate preview window rendered correctly. For this
+  visual inspection only, a byte-identical renamed GUI executable worked around
+  the automation helper's app-identity error. Its SHA-256 matched HandBrake.exe
+  (`4a9e4fe26e674c7afe65abcf85d48d510e9ac9a7b6785c0eabef0c9577540ccd`).
+  Original-name scans and worker encoding were tested separately as above.
+
+An initial local monitor waited on the main activity log instead of the separate
+encode log after a successful job. The monitor was corrected, and the full GUI
+sequence and output validation passed from a second fresh extraction. This was
+a test-harness error, not an encoder or GUI failure.
+
+No access violation or GPU-probe timeout occurred in the final monitored
+sequence. Nevertheless, **the original sporadic crash is not proven fixed**:
+the old package also passed the available reproduction, and the earlier
+unexplained termination/timeout remain documented above. Short tests cannot
+establish long-run stability or the root cause of the historical memory error.
+Full-film encodes, HDR10+/Dolby Vision end-to-end passthrough, GPU encoding,
+DirectX decoding, and actual installer installation remain unverified.
+
+Other existing workflows on the code commit: Ubuntu and Arch reported success;
+Flatpak failed because its workflow installs GNOME SDK 49 while current
+HandBrake requests 51. The macOS workflow reported failure with a cancelled
+build job; no successful macOS validation is claimed. These workflows were not
+modernized as part of the Windows x64 task, and their results do not establish
+matching Windows-package provenance.
