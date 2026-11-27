@@ -1,4 +1,4 @@
-# Workflow maintenance â€” 2026-11-27
+# Workflow maintenance - 2026-11-27
 
 ## Why failure notifications kept arriving
 
@@ -51,6 +51,21 @@ does not claim their build failures have been fixed.
 Local validation checks the complete seven-patch Windows series against the
 locked HandBrake revision, the SVT archive/API/contrib patch, the build-safety
 regression tests, Python syntax, workflow syntax and diff whitespace.
-The full Windows Actions build must additionally pass the Rust link preflight,
-native and GUI builds, manifest comparison and all six encoder runtime cases.
-No new claim is made that the historical ISO access violation is fixed.
+The full Windows Actions [run 46051293146](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/actions/runs/46051293146)
+passed on November 27 for commit `a0bd6cfd38c9c15469413bb324df91792bd46272`:
+
+- Rust 1.100.0 link preflight and clean native CLI/hb.dll build passed.
+- GUI and installer build, source-tree/binary-hash comparison and packaged-DLL
+  API checks passed.
+- All six synthetic encode/probe/decode cases passed: 420-8-grain, 420-10,
+  444-8, 444-10-hdr, preset-minus2 and preset-minus3. The downloaded
+  `windows-runtime-results` artifact's `results.json` confirms each result.
+- Portable ZIP, installer, manifest and SHA-256 list were published by the
+  existing [release job](https://github.com/Delezatro/HandBrake-SVT-AV1-HDR/releases/tag/win-46051293146-1).
+
+This run did not test interactive GUI scanning, the original Blu-ray ISO or
+representative HDR10+/Dolby Vision dynamic metadata. The GUI build emitted
+NETSDK1236 bundle-filtering warnings; a successful build and DLL API smoke test
+do not validate interactive GUI/worker behavior. No new claim is made that the
+historical ISO access violation is fixed. Earlier November 17 runtime evidence
+in `windows-validation.md` applies to that earlier package.
