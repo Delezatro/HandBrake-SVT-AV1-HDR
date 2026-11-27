@@ -1,12 +1,7 @@
 name: Ubuntu Build
 
+# Optional platform: run explicitly when needed; this fork focuses on Windows x64.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-  schedule:
-    - cron:  '30 7 * * 1,5'
   workflow_dispatch:
 
 concurrency:

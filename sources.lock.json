@@ -18,5 +18,9 @@
     "url": "https://github.com/HandBrake/HandBrake-toolchains/releases/download/1.0/mingw-w64-toolchain-12.0.0-ucrt-linux-x86_64.tar.gz",
     "sha256": "e72f51e445a22ac08243a3a74e20aeadb8fc5706a1ae11c686c8d15ee8ddc63d",
     "bin": "mingw-w64-toolchain-12.0.0-ucrt-linux-x86_64/mingw-w64-x86_64/bin"
+  },
+  "rust": {
+    "version": "1.100.0",
+    "target": "x86_64-pc-windows-gnu"
   }
 }

@@ -3,7 +3,8 @@
 The Windows workflow builds a pinned current HandBrake development revision with
 SVT-AV1-HDR 4.3 "Crankcase". See [source pins](sources.lock.json) and the
 [compatibility and validation report](docs/windows-validation.md).
-Run **Windows x64 Build** in Actions, or open a pull request, to build and test
+Run **Windows x64 Build** in Actions, or change Windows build inputs on main or
+in a pull request, to build and test
 the CLI, native library and .NET 10 GUI together. Download the complete
 `HandBrake-Windows-x64` artifact. Builds on main also publish versioned Windows
 prereleases. A successful build does **not** verify the reported Blu-ray ISO crash.
@@ -14,9 +15,17 @@ python scripts/prepare.py HandBrake --clone --platform windows --require-pinned 
 ```
 Existing clone destinations are never deleted automatically.
 
+There are no scheduled rebuilds. Windows builds run for relevant source, patch,
+script or workflow changes and on manual dispatch. The pinned HandBrake/SVT
+revisions do not update themselves, so repeated calendar builds offer no newer
+source code. macOS, Ubuntu, Arch and Flatpak workflows remain available as
+manual-only, optional builds; their platform-specific maintenance is separate.
+See [workflow maintenance](docs/workflow-maintenance.md) for the November 2026
+failure diagnosis and Rust linking fix.
+
 ### Purpose of the project
 This project contains the patches needed to replace SVT-AV1 with SVT-AV1-HDR inside HandBrake.\
-In addition, using GitHub Actions, nightly build of patched executables will be released.
+GitHub Actions builds complete patched packages on relevant Windows changes or manual request.
 ### Instructions to patch/build
 * Run ```patch.sh``` on linux. The script will patch the previously cloned HandBrake repo. If you want to also clone it you can use ```--clone``` argument.
 * Compile for the desired platform using the commands provided on the HandBrake wiki ([BSD](https://handbrake.fr/docs/en/latest/developer/build-bsd.html), [Linux](https://handbrake.fr/docs/en/latest/developer/build-linux.html), [Mac](https://handbrake.fr/docs/en/latest/developer/build-mac.html), [Windows](https://handbrake.fr/docs/en/latest/developer/build-windows.html))

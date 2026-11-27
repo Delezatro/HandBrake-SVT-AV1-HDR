@@ -3,11 +3,9 @@ name: Windows x64 Build
 on:
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**.md']
+    paths: ['.github/workflows/nightly-win.yml', '.gitattributes', 'sources.lock.json', 'patches/**', 'scripts/**', 'tests/**']
   pull_request:
-    paths-ignore: ['docs/**', '**.md']
-  schedule:
-    - cron: '30 7 * * 1,5'
+    paths: ['.github/workflows/nightly-win.yml', '.gitattributes', 'sources.lock.json', 'patches/**', 'scripts/**', 'tests/**']
   workflow_dispatch:
 
 permissions:
@@ -22,15 +20,20 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       handbrake: ${{ steps.lock.outputs.handbrake }}
+      rust: ${{ steps.lock.outputs.rust }}
     steps:
       - uses: actions/checkout@v7
       - id: lock
-        run: echo "handbrake=$(python3 -c 'import json; print(json.load(open("sources.lock.json"))["handbrake"]["commit"])')" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "handbrake=$(python3 -c 'import json; print(json.load(open("sources.lock.json"))["handbrake"]["commit"])')" >> "$GITHUB_OUTPUT"
+          echo "rust=$(python3 -c 'import json; print(json.load(open("sources.lock.json"))["rust"]["version"])')" >> "$GITHUB_OUTPUT"
 
   native:
     name: Windows x64 CLI and hb.dll
     needs: sources
     runs-on: ubuntu-24.04
+    env:
+      RUSTUP_TOOLCHAIN: ${{ needs.sources.outputs.rust }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/checkout@v7
@@ -49,12 +52,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y automake autoconf build-essential libtool libtool-bin make meson nasm patch tar yasm zlib1g-dev ninja-build gzip pax cmake libssl-dev
-          rustup target add x86_64-pc-windows-gnu
+          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --target x86_64-pc-windows-gnu
+          rustc --version
+          cargo --version
       - name: Install verified official x64 UCRT toolchain
         run: |
           python3 scripts/download_toolchain.py toolchains
           echo "$PWD/toolchains/$(python3 -c 'import json; print(json.load(open("sources.lock.json"))["windows_x64_toolchain"]["bin"])')" >> "$GITHUB_PATH"
           echo "$PWD/toolchains/cargo-c" >> "$GITHUB_PATH"
+      - name: Check Rust and Windows system-library linkage
+        run: python3 scripts/check_windows_link.py HandBrake
       - name: Build from clean sources
         working-directory: HandBrake
         run: |

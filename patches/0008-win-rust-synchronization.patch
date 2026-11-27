@@ -1,0 +1,18 @@
+From: HandBrake upstream
+Subject: libhb: link to Synchronization on Windows
+
+Backport of HandBrake 19ed158095b6c9f9252e02a90949acb00a6a2608.
+Recent Rust toolchains require this library when linking static libdovi.
+
+diff --git a/libhb/module.defs b/libhb/module.defs
+--- a/libhb/module.defs
++++ b/libhb/module.defs
+@@ -185,7 +185,7 @@ else
+ endif
+ 
+ LIBHB.GCC.args.extra.dylib++ += -Wl,--out-implib,$(LIBHB.lib)
+-LIBHB.GCC.l += bcrypt ws2_32 uuid ole32 gdi32 userenv ntdll
++LIBHB.GCC.l += bcrypt ws2_32 uuid ole32 gdi32 userenv ntdll synchronization
+ ifeq (1,$(FEATURE.mf))
+     LIBHB.GCC.l += mfplat strmiids
+ endif

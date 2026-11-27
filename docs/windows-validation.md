@@ -4,8 +4,9 @@
 
 The Windows workflow builds HandBrake's official development revision
 `005b91a697ceefec13877f7b020e293fb8d7a8c5` (master on 2026-11-16).
-`sources.lock.json` is the update point. Scheduled builds deliberately rebuild
-that reviewed revision; they do not silently move to a new upstream commit.
+`sources.lock.json` is the update point. Builds deliberately use that reviewed revision; they do not silently move to
+a new upstream commit. Calendar rebuilds were removed on 2026-11-27; see
+[workflow maintenance](workflow-maintenance.md).
 When updating it, rebase the patches and rerun the build and runtime checks.
 
 SVT-AV1-HDR is pinned to `6d661b6b510eb30b568d5ffcbb121176e553c454`,
@@ -32,6 +33,9 @@ The Windows build uses the official HandBrake x64 GCC/MinGW UCRT toolchain
 12.0.0 instead of the previous LLVM/MSVCRT toolchain, with the release asset's
 SHA-256 enforced. GUI publishing uses upstream's .NET 10 profiles and build.xml.
 The cargo-c 0.10.26 Linux release binary is also pinned and SHA-256 verified.
+Rust 1.100.0 is pinned for Windows; patch 0008 backports the upstream system
+link-library fix required by this toolchain. A small cross-link preflight runs
+before the full native build.
 FFmpeg 9.0.2 and other native dependencies come from this HandBrake revision's
 contrib definitions and checksums. No old native build directory or compiler
 cache is restored. This workflow targets x64; ARM64 builds are outside this
@@ -48,6 +52,7 @@ validation and are no longer coupled to the x64 release job.
 | 0005 | Existing Flatpak network permission; excluded from Windows |
 | 0006 | Retains chapter queueing without forcing keyframes at chapter boundaries |
 | 0007 | High profile selects planar 4:4:4 at 8 or 10 bits and EB_YUV444 |
+| 0008 | Link Windows synchronization APIs required by Rust 1.100.0/libdovi |
 
 All patches were regenerated against the selected upstream revision.
 The existing HDR10, HDR10+ and Dolby Vision metadata paths are retained.
